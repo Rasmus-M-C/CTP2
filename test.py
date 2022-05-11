@@ -41,8 +41,11 @@ def process_sensor(client, userdata, message):
             client.publish(topic=f"zigbee2mqtt/NY_LED_WORKS_YES/set", payload=json.dumps({"state": "OFF"}))
 
 if __name__ == "__main__":
+    
     room1 = room_model.Room("SENSOR1","NY_LED_WORKS_YES",0,0,0,"127.0.0.1", 1883)
-    controller1 = room_model.Controller(room1)
+    room_list = []
+    room_list.append(room1)
+    controller1 = room_model.Controller(room_list)
     controller1.control_loop()
     #controller1.sanitize_message()
     
