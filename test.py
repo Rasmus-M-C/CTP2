@@ -42,11 +42,17 @@ def process_sensor(client, userdata, message):
 
 if __name__ == "__main__":
     
-    room1 = room_model.Room("SENSOR1","NY_LED_WORKS_YES",0,0,0,"127.0.0.1", 1883)
+    room1 = room_model.Room("SENSOR1","LED1",0,0,0,"127.0.0.1", 1883)
     room_list = []
     room_list.append(room1)
     controller1 = room_model.Controller(room_list)
     controller1.control_loop()
+
+
+    sleep(5)
+    print("publishing message")
+
+
     #controller1.sanitize_message()
     
     
