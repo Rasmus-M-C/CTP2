@@ -3,8 +3,10 @@ import json
 from paho.mqtt.client import Client as MqttClient, MQTTMessage
 from paho.mqtt import publish, subscribe
 from time import sleep, time
-import threading
+import mysql.connector
+import mysql
 import test
+from datetime import datetime
 
 sensor_list = ["SENSOR1"]
 @dataclass
@@ -29,17 +31,56 @@ class Room():
   #Methods 
 
 @dataclass
+class Server():
+  password: str
+  user: str
+  db_name: str
+  host_server: str
+  mysql_conn : mysql.connector
+
+  def __init__(self, user, password, host_server, db_name):
+    self.user = user
+    self.password = password
+    self.db_name = db_name
+    self.host_server = host_server
+    self.mysql_conn = mysql.connector.connect(
+    host=self.host_server, 
+    user=self.user, 
+    password=self.password, 
+    database = self.db_name)
+
+  def store_sensor_event(self, room_id: int):
+    mysql_conn = mysql.connector.connect(user = self.user, password = self.password, host = self.host_server, database = self.db_name)
+    
+    #mysql_conn = mysql.connector.connect(user=self.user, password=self.password, host=self.host_server, database=self.db_name)
+    now = datetime.now()
+    formatted_date = now.strftime('%Y-%m-%d %H:%M:%S') # Current time in SQL format
+    
+    cursor = mysql_conn.cursor()
+    insert_stmt = ("INSERT INTO sensordata (room_id, device_type, measurement, timestamp)"
+     "VALUES (%s, %s, %s, %s)") ## Table values
+    data = (str(room_id),str('PIR Sensor'), str(True), formatted_date)
+    cursor.execute(insert_stmt, data)
+    mysql_conn.commit()
+    print("logged data")
+    mysql_conn.close()
+
+
+
+@dataclass
 class Controller(): # changes model aka rooms
   room_list: list
-  def __init__(self, room_list_input):
+  MYSQL_Server: Server
+  def __init__(self, room_list_input, input_server):
     self.room_list = room_list_input
-    #self.occupied_thread = self.threading.Timer(30.0, self.is_occupied(client, userdata, message))
+    self.MYSQL_Server = input_server
+  
 
   def set_room_visited(self, Room, index: int):
-    self.room_list = True
+    self.room_list[index].Room_visisted = True
 
   def set_room_not_visited(self, room_list: list, index: int):
-    self.room_list[index].Is = False
+    self.room_list[index].Room_visisted = False
 
     #self.occupied_thread.start()
   def sanitize_message(self, client, userdata, message) -> dict:
@@ -58,6 +99,7 @@ class Controller(): # changes model aka rooms
           #self.set_room_visited(self, room_list, room_num_index)
           #client.publish(topic=f"zigbee2mqtt/LED{payload_recieve["SENSOR_ID"]}/set", payload=json.dumps({"state": "ON"}))
           client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "OFF"}))
+          self.MYSQL_Server.store_sensor_event(room_num_index+1)
         #if (room_list[room_num_index].Internal_counter % 5 == 0 and payload_recieve["occupancy"] == False):
         elif (self.room_list[room_num_index].Internal_counter % 5 == 0):
           client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
