@@ -127,15 +127,21 @@ class Controller(): # changes model aka rooms
     #tid på badeværelse =  Tid_sensor4_anden_gang - Tid_sensor5_første_gang
     #længde tid soveværelse Tid_sensor1_anden_gang - Tid_sensor4
   def color_room(self, sensor_id: int, client):
+    
     if(sensor_id == 1):
+      #client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
       client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"color": {"hex":"#FF0000"}})) #Rød
     elif(sensor_id == 2):
+      #client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
       client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"color": {"hex":"#00FF00"}})) #Grøn
     elif(sensor_id == 3):
+      #client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
       client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"color": {"hex":"#0000FF"}})) #Blå
     elif(sensor_id == 4):
+      #client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
       client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"color": {"hex":"#FFFF00"}})) #Gul
     elif(sensor_id == 5):
+      #client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
       client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"color": {"hex":"#FFB7D1"}})) #Pink
 
   def send_message_sensor(self, sensor_id: int, mqtt_client):
@@ -143,30 +149,30 @@ class Controller(): # changes model aka rooms
     sleep(1)
 
   
-  def sanitize_and_turn_on_room_and_next_room(self, client, userdata, message) -> dict:
-    for sensor in sensor_list:
-      if f"{sensor}" in message.topic:  
-        payload_recieve = message.payload.decode("utf-8")
-        payload_recieve = json.loads(payload_recieve)
-        payload_recieve.update ({"SENSOR_ID": sensor.partition("R")[2]})
-        room_num_index = int(payload_recieve["SENSOR_ID"]) - 1 
-        if (payload_recieve["occupancy"] == "true"):
-          client.publish(topic=f"zigbee2mqtt/LED{room_num_index}/set", payload=json.dumps({"state": "ON"}))
-          if(room_num_index != len(sensor_list)-1):
-            client.publish(topic=f"zigbee2mqtt/LED{room_num_index+1}/set", payload=json.dumps({"state": "ON"}))
-          if(room_num_index != 0):
-            client.publish(topic=f"zigbee2mqtt/LED{room_num_index-1}/set", payload=json.dumps({"state": "ON"}))
-          self.MYSQL_Server.store_sensor_event(room_num_index+1) # Store in database that sensor was activated
-
-          self.room_list[room_num_index].Room_visited = int(time.time()) # Time of visit
-          
-          self.bathroom_event(self.room_list, timing) # Checks if conditions to bathroom trip is fulfilled
-        
-        elif (int(time.time()) - self.room_list[room_num_index].Room_visited > 30): # If 30 second has passed since we turned on the sensor
-          client.publish(topic=f"zigbee2mqtt/LED{room_num_index}/set", payload=json.dumps({"state": "ON"})) # turn off the LED corresponding to sensor ID  
-          self.room_list[room_num_index].Room_visited  = 0 # Set time of activation to 0, for bathroom_event to work correctly in its logic.
-                                                           # The time is set to 0 after we turn the LED off because the person it out of view
-  
+  #def sanitize_and_turn_on_room_and_next_room(self, client, userdata, message) -> dict:
+  #  for sensor in sensor_list:
+  #    if f"{sensor}" in message.topic:  
+  #      payload_recieve = message.payload.decode("utf-8")
+  #      payload_recieve = json.loads(payload_recieve)
+  #      payload_recieve.update ({"SENSOR_ID": sensor.partition("R")[2]})
+  #      room_num_index = int(payload_recieve["SENSOR_ID"]) - 1 
+  #      if (payload_recieve["occupancy"] == "true"):
+  #        client.publish(topic=f"zigbee2mqtt/LED{room_num_index}/set", payload=json.dumps({"state": "ON"}))
+  #        if(room_num_index != len(sensor_list)-1):
+  #          client.publish(topic=f"zigbee2mqtt/LED{room_num_index+1}/set", payload=json.dumps({"state": "ON"}))
+  #        if(room_num_index != 0):
+  #          client.publish(topic=f"zigbee2mqtt/LED{room_num_index-1}/set", payload=json.dumps({"state": "ON"}))
+  #        self.MYSQL_Server.store_sensor_event(room_num_index+1) # Store in database that sensor was activated
+#
+  #        self.room_list[room_num_index].Room_visited = int(time.time()) # Time of visit
+  #        
+  #        self.bathroom_event(self.room_list, timing) # Checks if conditions to bathroom trip is fulfilled
+  #      
+  #      elif (int(time.time()) - self.room_list[room_num_index].Room_visited > 30): # If 30 second has passed since we turned on the sensor
+  #        client.publish(topic=f"zigbee2mqtt/LED{room_num_index}/set", payload=json.dumps({"state": "ON"})) # turn off the LED corresponding to sensor ID  
+  #        self.room_list[room_num_index].Room_visited  = 0 # Set time of activation to 0, for bathroom_event to work correctly in its logic.
+  #                                                         # The time is set to 0 after we turn the LED off because the person it out of view
+  #
   def sanitize_message(self, client, userdata, message) -> dict:
     for sensor in sensor_list:
       if f"{sensor}" in message.topic:  
@@ -176,10 +182,10 @@ class Controller(): # changes model aka rooms
         room_num_index = int(payload_recieve["SENSOR_ID"]) - 1 
         if (payload_recieve["occupancy"] == "true"):
           
-          self.color_room(room_num_index, client)
-          client.publish(topic=f"zigbee2mqtt/LED{room_num_index}/set", payload=json.dumps({"color": {"hex":"#800080"}}))
+          self.color_room(room_num_index+1, client)
+          #client.publish(topic=f"zigbee2mqtt/LED{room_num_index}/set", payload=json.dumps({"color": {"hex":"#800080"}}))
           
-          #self.MYSQL_Server.store_sensor_event(room_num_index+1) # Store in database that sensor was activated
+          self.MYSQL_Server.store_sensor_event(room_num_index+1) # Store in database that sensor was activated
 
           self.room_list[room_num_index].Room_visited = int(time.time()) # Time of visit in room with tripped sensor
 
