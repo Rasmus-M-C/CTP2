@@ -12,18 +12,18 @@ import time
 
 sensor_list = ["SENSOR1", "SENSOR2", "SENSOR3", "SENSOR4", "SENSOR5"]
 timing = {"start_time": 0, "time_to_bathroom": 0, "time_in_bathroom": 0, "time_to_bedroom": 0}
-    #start tid = Tid_sensor1
-    #længde tid bad = Tid_sensor5-Tid_sensor1
-    #tid på badeværelse =  Tid_sensor4_anden_gang - Tid_sensor5
-    #længde tid soveværelse Tid_sensor1_anden_gang - Tid_sensor4-
-@dataclass
+  #start tid = Tid_sensor1
+  #længde tid bad = Tid_sensor5-Tid_sensor1
+  #tid på badeværelse =  Tid_sensor4_anden_gang - Tid_sensor5
+  #længde tid soveværelse Tid_sensor1_anden_gang - Tid_sensor4-
+
+@dataclass 
 class Room():
   Id_sensor: str
   Id_LED: str
   Host: str
   Port: int
   Room_visited: int = 0
-  Internal_counter: int = 0
 
   def __init__(self,id_sensor, id_LED, Host, Port):
     self.Id_sensor = id_sensor
@@ -34,14 +34,14 @@ class Room():
   #Methods 
 
 @dataclass
-class Server():
+class Server(): # Database classm, which attributes for using MySQL
   password: str
   user: str
   db_name: str
   host_server: str
   mysql_conn : mysql.connector
 
-  def __init__(self, user, password, host_server, db_name):
+  def __init__(self, user, password, host_server, db_name): 
     self.user = user
     self.password = password
     self.db_name = db_name
@@ -52,7 +52,7 @@ class Server():
     password=self.password, 
     database = self.db_name)
 
-  def store_sensor_event(self, room_id: int):
+  def store_sensor_event(self, room_id: int): # Logs a sensor event aka sensor activation
     
     now = datetime.now()
     formatted_date = now.strftime('%Y-%m-%d %H:%M:%S') # Current time in SQL format
@@ -66,7 +66,7 @@ class Server():
     print("Logged sensor data")
     #self.mysql_conn.close()
   
-  def store_bathroom_event(self, timing: dict): 
+  def store_bathroom_event(self, timing: dict, room_list: list): # Logs a bathroom event
 
     now = datetime.now()
     formatted_date = now.strftime('%Y-%m-%d %H:%M:%S') # Current time in SQL format
@@ -77,6 +77,8 @@ class Server():
     data = (timing["time_to_bathroom"], timing["time_in_bathroom"], timing["time_to_bedroom"], formatted_date)
     cursor.execute(insert_stmt, data)
     self.mysql_conn.commit()
+    for room in room_list:
+      room.Room_visited = 0
     print("Logged bathroom event")
     #self.mysql_conn.close()
 
@@ -91,15 +93,10 @@ class Controller(): # changes model aka rooms
     self.MYSQL_Server = input_server
   
   
-
-
-  
-  ####################################################################################
-  ######den udregner time_to_bathroom forkert, time_in_bathroom, time_to_bedroom######
-  ####################################################################################
-  def bathroom_event(self, room_list: list, timing: dict): ## den udregner time_to_bathroom forkert, time_in_bathroom, time_to_bedroom######
+  def bathroom_event(self, room_list: list, timing: dict): # Checks if conditions for bathroom visit are fulfilled
     
     room_list_len = len(room_list)-1
+    # Below, checks if every sensor has a time of activation such that the person is actually moving towards the bathroom
     if(room_list[0].Room_visited - int(time.time()) > room_list[-1].Room_visited - int(time.time()) and room_list[-1].Room_visited): # vi kommer fra soveværelset
       for index, room in enumerate(room_list):
         if(index != room_list_len):
@@ -107,10 +104,11 @@ class Controller(): # changes model aka rooms
             break
         
         elif(room_list[index-room_list_len].Room_visited != 0):
-          
+          #If the person has gone to the bathroom and back to the bedroom, we can log a bathroom event
           timing["time_in_bathroom"] = room_list[-2].Room_visited - timing["time_in_bathroom"]
           timing["time_to_bedroom"] = room_list[0].Room_visited - room_list[-2].Room_visited
-          self.MYSQL_Server.store_bathroom_event(timing)
+          self.MYSQL_Server.store_bathroom_event(timing, room_list)
+    # Below checks if the person has moved back to the bedroom
     else:
       if(room_list[0].Room_visited < room_list[-1].Room_visited and room_list[0].Room_visited != 0):
        
@@ -124,21 +122,51 @@ class Controller(): # changes model aka rooms
           if(room_list[-1].Room_visited != 0 and room_list[-2-index].Room_visited - room_list[-1-index].Room_visited < 300 and room_list[-1-index].Room_visited > room.Room_visited):
             break
         
-        
-    #for room in room_list:
-    #  print(room.Room_visited)
-    #if(all(times != 0 for times in timing.values())):
-      
-
-
     #start tid = Tid_sensor1
     #længde tid bad = Tid_sensor5-Tid_sensor1
     #tid på badeværelse =  Tid_sensor4_anden_gang - Tid_sensor5_første_gang
     #længde tid soveværelse Tid_sensor1_anden_gang - Tid_sensor4
+  def color_room(self, sensor_id: int, client):
+    if(sensor_id == 1):
+      client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"color": {"hex":"#FF0000"}})) #Rød
+    elif(sensor_id == 2):
+      client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"color": {"hex":"#00FF00"}})) #Grøn
+    elif(sensor_id == 3):
+      client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"color": {"hex":"#0000FF"}})) #Blå
+    elif(sensor_id == 4):
+      client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"color": {"hex":"#FFFF00"}})) #Gul
+    elif(sensor_id == 5):
+      client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"color": {"hex":"#FFB7D1"}})) #Pink
 
+  def send_message_sensor(self, sensor_id: int, mqtt_client):
+    mqtt_client.publish(topic=f"zigbee2mqtt/SENSOR{sensor_id}", payload=json.dumps({"occupancy": "true"}))
+    sleep(1)
 
+  
+  def sanitize_and_turn_on_room_and_next_room(self, client, userdata, message) -> dict:
+    for sensor in sensor_list:
+      if f"{sensor}" in message.topic:  
+        payload_recieve = message.payload.decode("utf-8")
+        payload_recieve = json.loads(payload_recieve)
+        payload_recieve.update ({"SENSOR_ID": sensor.partition("R")[2]})
+        room_num_index = int(payload_recieve["SENSOR_ID"]) - 1 
+        if (payload_recieve["occupancy"] == "true"):
+          client.publish(topic=f"zigbee2mqtt/LED{room_num_index}/set", payload=json.dumps({"state": "ON"}))
+          if(room_num_index != len(sensor_list)-1):
+            client.publish(topic=f"zigbee2mqtt/LED{room_num_index+1}/set", payload=json.dumps({"state": "ON"}))
+          if(room_num_index != 0):
+            client.publish(topic=f"zigbee2mqtt/LED{room_num_index-1}/set", payload=json.dumps({"state": "ON"}))
+          self.MYSQL_Server.store_sensor_event(room_num_index+1) # Store in database that sensor was activated
 
-
+          self.room_list[room_num_index].Room_visited = int(time.time()) # Time of visit
+          
+          self.bathroom_event(self.room_list, timing) # Checks if conditions to bathroom trip is fulfilled
+        
+        elif (int(time.time()) - self.room_list[room_num_index].Room_visited > 30): # If 30 second has passed since we turned on the sensor
+          client.publish(topic=f"zigbee2mqtt/LED{room_num_index}/set", payload=json.dumps({"state": "ON"})) # turn off the LED corresponding to sensor ID  
+          self.room_list[room_num_index].Room_visited  = 0 # Set time of activation to 0, for bathroom_event to work correctly in its logic.
+                                                           # The time is set to 0 after we turn the LED off because the person it out of view
+  
   def sanitize_message(self, client, userdata, message) -> dict:
     for sensor in sensor_list:
       if f"{sensor}" in message.topic:  
@@ -147,67 +175,51 @@ class Controller(): # changes model aka rooms
         payload_recieve.update ({"SENSOR_ID": sensor.partition("R")[2]})
         room_num_index = int(payload_recieve["SENSOR_ID"]) - 1 
         if (payload_recieve["occupancy"] == "true"):
-          #self.set_room_visited(self, room_list, room_num_index)
-          #client.publish(topic=f"zigbee2mqtt/LED{payload_recieve["SENSOR_ID"]}/set", payload=json.dumps({"state": "ON"}))
-          client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "OFF"}))
-          self.MYSQL_Server.store_sensor_event(room_num_index+1)
-          self.room_list[room_num_index].Room_visited = int(time.time())
+          
+          self.color_room(room_num_index, client)
+          client.publish(topic=f"zigbee2mqtt/LED{room_num_index}/set", payload=json.dumps({"color": {"hex":"#800080"}}))
+          
+          #self.MYSQL_Server.store_sensor_event(room_num_index+1) # Store in database that sensor was activated
 
-          self.bathroom_event(self.room_list, timing)
-        elif (self.room_list[room_num_index].Room_visited != 0 and  int(time.time()) - self.room_list[room_num_index].Room_visited > 5):
-          client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
+          self.room_list[room_num_index].Room_visited = int(time.time()) # Time of visit in room with tripped sensor
+
+          self.bathroom_event(self.room_list, timing) # Checks if conditions to bathroom trip is fulfilled
+
+        elif (int(time.time()) - self.room_list[room_num_index].Room_visited > 30):
+          client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "OFF"}))
           self.room_list[room_num_index].Room_visited  = 0 ### måske ændres
 
-  def control_loop(self):
-    # Create a data model and add a list of known Zigbee devices.
-    mqtt_client= MqttClient()
-    # Connect to the host given in initializer.
+  def is_time_correct(self) -> bool: # Function to check if we should run the system or not
+    operating_time = [22 , 23 , 24 , 00 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8]
+    t = time.localtime()
+    current_time = int(time.strftime("%H", t))
+    return(current_time not in operating_time)
+    
+  def control_loop(self): # Loop for recieveing and processing MQTT messages 
+    mqtt_client = MqttClient()
     mqtt_client.connect("127.0.0.1", 1883)
-    mqtt_client.on_message = self.sanitize_message
     mqtt_client.loop_start()
-    # Subscribe to all topics given in the initializer.
-    #mqtt_client.subscribe("zigbee2mqtt/#")
     mqtt_client.subscribe("zigbee2mqtt/#")
-    #mqtt_client.subscribe("zigbee2mqtt/SENSOR1")
-    
-    # Start the subscriber thread.
-    sleep(3)
-    #mqtt_client.publish(topic="zigbee2mqtt/SENSOR1", payload=json.dumps({"occupancy": "true"}))
-    
-    x = 1
-    
-    try:
-      mqtt_client.publish(topic="zigbee2mqtt/SENSOR1", payload=json.dumps({"occupancy": "true"}))
-      sleep(3)
-      mqtt_client.publish(topic="zigbee2mqtt/SENSOR2", payload=json.dumps({"occupancy": "true"}))
-      sleep(3)
-      mqtt_client.publish(topic="zigbee2mqtt/SENSOR3", payload=json.dumps({"occupancy": "true"}))
-      sleep(3)
-      mqtt_client.publish(topic="zigbee2mqtt/SENSOR4", payload=json.dumps({"occupancy": "true"}))
-      sleep(3)
-      mqtt_client.publish(topic="zigbee2mqtt/SENSOR5", payload=json.dumps({"occupancy": "true"}))
-      sleep(3)
-      mqtt_client.publish(topic="zigbee2mqtt/SENSOR5", payload=json.dumps({"occupancy": "true"}))
-      sleep(3)
-      mqtt_client.publish(topic="zigbee2mqtt/SENSOR4", payload=json.dumps({"occupancy": "true"}))
-      sleep(3)
-      mqtt_client.publish(topic="zigbee2mqtt/SENSOR3", payload=json.dumps({"occupancy": "true"}))
-      sleep(3)
-      mqtt_client.publish(topic="zigbee2mqtt/SENSOR2", payload=json.dumps({"occupancy": "true"}))
-      sleep(3)
-      mqtt_client.publish(topic="zigbee2mqtt/SENSOR1", payload=json.dumps({"occupancy": "true"})) 
-      
-      sleep(3)
-      print("DONE WITH SENDING MESSAGES")   
-      while True:
-        print(f"Waiting ...{x}")
-        sleep(2)
-    except KeyboardInterrupt:
-      print("Oh! you pressed CTRL + C.")
-      print("Program interrupted.")
-    finally:
-      self.MYSQL_Server.mysql_conn.close()
-      print("Closed MySQL connection!")
+    mqtt_client.on_message = self.sanitize_message
+    while True:
+      if (self.is_time_correct()): continue
+# 
+
+      #mqtt_client.publish(topic="zigbee2mqtt/SENSOR1", payload=json.dumps({"occupancy": "true"}))
+      #try:
+      #  self.send_message_sensor(1, mqtt_client)
+      #  self.send_message_sensor(2, mqtt_client)
+      #  self.send_message_sensor(3, mqtt_client)
+      #  self.send_message_sensor(4, mqtt_client)
+      #  self.send_message_sensor(5, mqtt_client)
+      #  self.send_message_sensor(5, mqtt_client)
+      #  self.send_message_sensor(4, mqtt_client)
+      #  self.send_message_sensor(3, mqtt_client)
+      #  self.send_message_sensor(2, mqtt_client)
+      #  self.send_message_sensor(1, mqtt_client)
+
+      #  print("DONE WITH SENDING MESSAGES")   
+   
 
 
 
