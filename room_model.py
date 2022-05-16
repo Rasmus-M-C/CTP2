@@ -12,6 +12,8 @@ import time
 
 sensor_list = ["SENSOR1", "SENSOR2", "SENSOR3", "SENSOR4", "SENSOR5"]
 timing = {"start_time": 0, "time_to_bathroom": 0, "time_in_bathroom": 0, "time_to_bedroom": 0}
+Can_log = False
+Old_time = 0
   #start tid = Tid_sensor1
   #længde tid bad = Tid_sensor5-Tid_sensor1
   #tid på badeværelse =  Tid_sensor4_anden_gang - Tid_sensor5
@@ -63,7 +65,7 @@ class Server(): # Database classm, which attributes for using MySQL
     data = (str(room_id),str('PIR Sensor'), str(True), formatted_date)
     cursor.execute(insert_stmt, data)
     self.mysql_conn.commit()
-    print("Logged sensor data")
+    print(f"Logged sensor data from {room_id}")
     #self.mysql_conn.close()
   
   def store_bathroom_event(self, timing: dict, room_list: list): # Logs a bathroom event
@@ -79,6 +81,10 @@ class Server(): # Database classm, which attributes for using MySQL
     self.mysql_conn.commit()
     for room in room_list:
       room.Room_visited = 0
+    timing["start_time"] = 0
+    timing["time_to_bathroom"] = 0 
+    timing["time_in_bathroom"] = 0 
+    timing["time_to_bedroom"] = 0
     print("Logged bathroom event")
     #self.mysql_conn.close()
 
@@ -93,34 +99,54 @@ class Controller(): # changes model aka rooms
     self.MYSQL_Server = input_server
   
   
-  def bathroom_event(self, room_list: list, timing: dict): # Checks if conditions for bathroom visit are fulfilled
+  def bathroom_event(self, room_list: list, timing: dict, vv: bool): # Checks if conditions for bathroom visit are fulfilled
     
     room_list_len = len(room_list)-1
     # Below, checks if every sensor has a time of activation such that the person is actually moving towards the bathroom
-    if(room_list[0].Room_visited - int(time.time()) > room_list[-1].Room_visited - int(time.time()) and room_list[-1].Room_visited): # vi kommer fra soveværelset
-      for index, room in enumerate(room_list):
-        if(index != room_list_len):
-          if(room_list[index].Room_visited != 0 and room_list[index+1].Room_visited - room_list[index].Room_visited < 300 and room_list[index+1].Room_visited > room.Room_visited): # Huske at vurdere der ikke er gået for lang tid siden man gik i midterste rum 
-            break
-        
-        elif(room_list[index-room_list_len].Room_visited != 0):
-          #If the person has gone to the bathroom and back to the bedroom, we can log a bathroom event
-          timing["time_in_bathroom"] = room_list[-2].Room_visited - timing["time_in_bathroom"]
-          timing["time_to_bedroom"] = room_list[0].Room_visited - room_list[-2].Room_visited
-          self.MYSQL_Server.store_bathroom_event(timing, room_list)
+    #¤timing["start_time"] = room_list[0].Room_visited
+    if((timing["start_time"] == 0) or (int(time.time()) - timing["start_time"] > 30)): 
+      timing["start_time"] = room_list[0].Room_visited
+      vv = True
+    #if(int(time.time()) - room_list[0].Room_visited  > int(time.time()) - room_list[-1].Room_visited):
+     # vi kommer fra soveværelset
+    if((timing["time_in_bathroom"] == 0) or (int(time.time()) - timing["start_time"] > 30 ) or (vv) ): 
+      timing["time_in_bathroom"] = room_list[-1].Room_visited
+      #Old_time = room_list[-1].Room_visited
+      vv = False
+    print(room_list[-1].Room_visited, "RUM 5")
+    print(timing["start_time"], "START TID")
+    print(room_list[0].Room_visited," RUM 1")
+    print(timing["time_to_bathroom"], "TID TIL BAD")
+    if(((room_list[-1].Room_visited != 0)and(timing["time_to_bathroom"] == 0))): 
+      timing["time_to_bathroom"] = room_list[-1].Room_visited - timing["start_time"]
+    for index, room in enumerate(room_list):
+      if(index != room_list_len):
+        if((room_list[index].Room_visited != 0) and ((room_list[-1].Room_visited - timing["start_time"]) < (15*(room_list_len+1) )) and (all(room.Room_visited != 0 for room in room_list))): # Huske at vurdere der ikke er gået for lang tid siden man gik i midterste rum 
+          if(room_list[0].Room_visited > timing["start_time"]): 
+            #If the person has gone to the bathroom and back to the bedroom, we can log a bathroom event
+            
+            timing["time_in_bathroom"] = room_list[-2].Room_visited - timing["time_in_bathroom"]
+            timing["time_to_bedroom"] = room_list[0].Room_visited - room_list[-2].Room_visited
+            self.MYSQL_Server.store_bathroom_event(timing, room_list)
+      #print(room_list[0].Room_visited)
+      #print(timing["start_time"])
+      #timing["time_to_bathroom"] = room_list[-1].Room_visited - timing["start_time"]
+      #elif(room_list[0].Room_visited > timing["start_time"]): 
+      #  #If the person has gone to the bathroom and back to the bedroom, we can log a bathroom event
+      #  timing["time_in_bathroom"] = room_list[-2].Room_visited - timing["time_in_bathroom"]
+      #  timing["time_to_bedroom"] = room_list[0].Room_visited - room_list[-2].Room_visited
+      #  self.MYSQL_Server.store_bathroom_event(timing, room_list)
     # Below checks if the person has moved back to the bedroom
-    else:
-      if(room_list[0].Room_visited < room_list[-1].Room_visited and room_list[0].Room_visited != 0):
-       
-        timing["start_time"] = room_list[0].Room_visited
-        timing["time_to_bathroom"] = room_list[-1].Room_visited - room_list[0].Room_visited
-        timing["time_in_bathroom"] = room_list[-1].Room_visited
-        room_list[0].Room_visited = 0
-      for index, room in enumerate(room_list):
-        if(index != room_list_len):
-          #if(room_list[-1].Room_visited != 0 and room_list[index])
-          if(room_list[-1].Room_visited != 0 and room_list[-2-index].Room_visited - room_list[-1-index].Room_visited < 300 and room_list[-1-index].Room_visited > room.Room_visited):
-            break
+    #else:
+    #  if(room_list[0].Room_visited < room_list[-1].Room_visited):
+    #   
+    #    
+    #    
+    #  for index, room in enumerate(room_list):
+    #    if(index != room_list_len):
+    #      #if(room_list[-1].Room_visited != 0 and room_list[index])
+    #      if(room_list[-1].Room_visited != 0 and room_list[-2-index].Room_visited - room_list[-1-index].Room_visited < 50 and room_list[-1-index].Room_visited > room.Room_visited):
+    #        break
         
     #start tid = Tid_sensor1
     #længde tid bad = Tid_sensor5-Tid_sensor1
@@ -129,19 +155,19 @@ class Controller(): # changes model aka rooms
   def color_room(self, sensor_id: int, client):
     
     if(sensor_id == 1):
-      #client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
+      client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
       client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"color": {"hex":"#FF0000"}})) #Rød
     elif(sensor_id == 2):
-      #client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
+      client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
       client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"color": {"hex":"#00FF00"}})) #Grøn
     elif(sensor_id == 3):
-      #client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
+      client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
       client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"color": {"hex":"#0000FF"}})) #Blå
     elif(sensor_id == 4):
-      #client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
+      client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
       client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"color": {"hex":"#FFFF00"}})) #Gul
     elif(sensor_id == 5):
-      #client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
+      client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "ON"}))
       client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"color": {"hex":"#FFB7D1"}})) #Pink
 
   def send_message_sensor(self, sensor_id: int, mqtt_client):
@@ -173,6 +199,10 @@ class Controller(): # changes model aka rooms
   #        self.room_list[room_num_index].Room_visited  = 0 # Set time of activation to 0, for bathroom_event to work correctly in its logic.
   #                                                         # The time is set to 0 after we turn the LED off because the person it out of view
   #
+  #def is_old(self, room_list: list):
+  #  for index in range(len(room_list)):
+
+
   def sanitize_message(self, client, userdata, message) -> dict:
     for sensor in sensor_list:
       if f"{sensor}" in message.topic:  
@@ -180,8 +210,8 @@ class Controller(): # changes model aka rooms
         payload_recieve = json.loads(payload_recieve)
         payload_recieve.update ({"SENSOR_ID": sensor.partition("R")[2]})
         room_num_index = int(payload_recieve["SENSOR_ID"]) - 1 
-        if (payload_recieve["occupancy"] == "true"):
-          
+        if (payload_recieve["occupancy"] == True):
+          #client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"color": {"hex":"#0000FF"}}))
           self.color_room(room_num_index+1, client)
           #client.publish(topic=f"zigbee2mqtt/LED{room_num_index}/set", payload=json.dumps({"color": {"hex":"#800080"}}))
           
@@ -189,9 +219,9 @@ class Controller(): # changes model aka rooms
 
           self.room_list[room_num_index].Room_visited = int(time.time()) # Time of visit in room with tripped sensor
 
-          self.bathroom_event(self.room_list, timing) # Checks if conditions to bathroom trip is fulfilled
+          self.bathroom_event(self.room_list, timing, Can_log) # Checks if conditions to bathroom trip is fulfilled
 
-        elif (int(time.time()) - self.room_list[room_num_index].Room_visited > 30):
+        elif (int(time.time()) - self.room_list[room_num_index].Room_visited > 25):
           client.publish(topic=f"zigbee2mqtt/LED1/set", payload=json.dumps({"state": "OFF"}))
           self.room_list[room_num_index].Room_visited  = 0 ### måske ændres
 
