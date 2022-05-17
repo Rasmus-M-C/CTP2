@@ -113,10 +113,8 @@ class Controller(): # changes model aka rooms
       timing["time_in_bathroom"] = room_list[-1].Room_visited
       #Old_time = room_list[-1].Room_visited
       vv = False
-    print(room_list[-1].Room_visited, "RUM 5")
-    print(timing["start_time"], "START TID")
-    print(room_list[0].Room_visited," RUM 1")
-    print(timing["time_to_bathroom"], "TID TIL BAD")
+
+    
     if(((room_list[-1].Room_visited != 0)and(timing["time_to_bathroom"] == 0))): 
       timing["time_to_bathroom"] = room_list[-1].Room_visited - timing["start_time"]
     for index, room in enumerate(room_list):

@@ -16,7 +16,6 @@ if __name__ == "__main__":
     room3 = room_model.Room("SENSOR3","LED1","127.0.0.1", 1883)
     room4 = room_model.Room("SENSOR4","LED1","127.0.0.1", 1883)
     room5 = room_model.Room("SENSOR5","LED1","127.0.0.1", 1883)
-
     
     MYSQL_Server = room_model.Server(
     'dokkedalleth_dk', 

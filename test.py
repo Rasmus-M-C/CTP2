@@ -18,16 +18,26 @@ def send_message_sensor(sensor_id: int, mqtt_client, value: bool, sleep_time: in
 if __name__ == "__main__":
     mqtt_client = MqttClient()
     mqtt_client.connect("127.0.0.1", 1883)
-    send_message_sensor(1, mqtt_client, True, 1)
+    #test, goes out but not into the bathroom and comes back
+
+    send_message_sensor(1, mqtt_client, True,1)
     send_message_sensor(2, mqtt_client, True, 1)
-    send_message_sensor(3, mqtt_client, True, 3)
-    send_message_sensor(2, mqtt_client, True, 1) 
-    send_message_sensor(1, mqtt_client, True, 1)     
     send_message_sensor(3, mqtt_client, True, 1)
-    #send_message_sensor(4, mqtt_client, True, 1)
-    #send_message_sensor(5, mqtt_client, True, 1)
-    #send_message_sensor(5, mqtt_client, True, 1)
-    #send_message_sensor(4, mqtt_client, True, 1)
-    #send_message_sensor(3, mqtt_client, True, 1)
-    #send_message_sensor(2, mqtt_client, True, 1)
-    #send_message_sensor(1, mqtt_client, True, 1)
+    send_message_sensor(2, mqtt_client, True, 2)
+    send_message_sensor(1, mqtt_client, True, 31) 
+    
+    
+    #test, goes to the bathroom and back
+    send_message_sensor(1, mqtt_client, True, 1) 
+    send_message_sensor(2, mqtt_client, True, 1)     
+    send_message_sensor(3, mqtt_client, True, 1)
+    send_message_sensor(4, mqtt_client, True, 1)
+    send_message_sensor(5, mqtt_client, True, 1)
+    send_message_sensor(5, mqtt_client, True, 1)
+    send_message_sensor(4, mqtt_client, True, 1)
+    send_message_sensor(3, mqtt_client, True, 1)
+    send_message_sensor(2, mqtt_client, True, 1)
+    send_message_sensor(1, mqtt_client, True, 30)
+    send_message_sensor(1, mqtt_client, False, 1)
+
+    #T
