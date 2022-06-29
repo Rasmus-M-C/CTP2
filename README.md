@@ -11,7 +11,7 @@ The following project was made as part of the course "Computer Engineering Proje
 
 ## Introduction
 
-The Automated Light guide system is designed to deal with the problem of guiding elderly people to the bathroom from the bedroom and back at the nighttime. 
+The Automated Light guide system is designed to deal with the problem of guiding elderly people to the bathroom from the bedroom and back at 10 pm to 9 am
 
 
 ## Project demonstration
