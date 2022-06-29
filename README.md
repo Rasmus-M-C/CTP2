@@ -2,7 +2,7 @@
 
 Computer engineering project II:
 
-The following project was made as part of the course "Computer Engineering Project II" on the 4th semester of the Bachelor's degree in Computer Engineering at Aarhus University in the spring of 2021.
+The following project was made as part of the course "Computer Engineering Project II" on the 4th semester of the Bachelor's degree in Computer Engineering at Aarhus University in the spring of 2022.
 
 The project was developed by:
 
