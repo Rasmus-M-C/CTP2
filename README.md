@@ -29,5 +29,5 @@ The Automated Light guide system is designed to deal with the problem of guiding
 - Mosquitto broker installed on Raspberry Pi
 
 ## Installation
-1. Clone the repo
+1. Clone the repo<br>
    git clone https://github.com/Rasmus-M-C/CTP2.git
