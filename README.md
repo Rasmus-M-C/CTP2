@@ -20,7 +20,7 @@ The Automated Light guide system is designed to deal with the problem of guiding
 
 ## Requirements
 - Raspberry Pi model 3 B+ or newer.
-- system must support MQTT protocol + JSON encoding.
+- Raspberry Pi most support JSON encoding.
 - Aqara motion sensor, model: RTCGQ11LM
 - Gledopto GL-MC-001 LED
 - Zigbee2MQTT installed on Raspberry Pi
