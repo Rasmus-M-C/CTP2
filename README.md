@@ -4,10 +4,10 @@ The following project was made as part of the course "Computer Engineering Proje
 
 ## The project was developed by:
 
-    Asger Leth
-    Daniel Baun Olesen
-    Mikkel Petersen
-    Rasmus Carlsen
+   - Asger Leth
+   - Daniel Baun Olesen
+   - Mikkel Petersen
+   - Rasmus Carlsen
 
 ## Introduction:
 
