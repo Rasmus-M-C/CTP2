@@ -3,8 +3,8 @@ from paho.mqtt.client import Client as MqttClient, MQTTMessage
 from paho.mqtt import publish, subscribe
 from time import sleep, time
 import threading
-import room_model
-import main
+import main.room_model as room_model
+import main.main as main
 HOST = "127.0.0.1"
 PORT = 1883
 

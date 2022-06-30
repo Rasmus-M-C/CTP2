@@ -1,5 +1,5 @@
 from time import sleep
-from Cep2Controller import Cep2Controller
+from Misc.Cep2Controller import Cep2Controller
 from Cep2Model import Cep2Model, Cep2ZigbeeDevice
 
 

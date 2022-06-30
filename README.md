@@ -31,4 +31,5 @@ The Automated Light guide system is designed to deal with the problem of guiding
 1. Clone the repo <br>
     ```
     git clone https://github.com/Rasmus-M-C/CTP2.git
+    The main files for running the system which we wrote can be found in the folder "main"
    ```
